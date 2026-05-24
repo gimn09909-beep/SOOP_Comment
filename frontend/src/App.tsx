@@ -74,7 +74,7 @@ const CommentRow: React.FC<{ comment: Comment; isPinnedSection: boolean; current
         <div className="relative flex-shrink-0 pt-0.5"><a href={`https://www.sooplive.com/station/${comment.userId}`} target="_blank" rel="noopener noreferrer"><img src={comment.profileImage} alt="" className="w-12 h-12 rounded-xl object-cover border-2 border-[#f0f0f0] dark:border-gray-800/50 shadow-sm spring-transition group-hover:scale-105" loading="lazy" onError={(e) => { e.currentTarget.src = 'https://res.sooplive.com/images/station/img_profile_default.png'; }} /></a></div>
       </div>
       <div className="flex-1 min-w-0 flex flex-col w-full">
-        <div className="flex justify-between items-start mb-2">
+        <div className="hidden sm:flex justify-between items-start mb-2">
           <div className="flex flex-col gap-0.5 min-w-0">
             <div className="flex items-center gap-2.5"><h4 className="font-bold text-gray-900 dark:text-white text-[15px] tracking-tight group-hover:text-brand spring-transition truncate"><a href={`https://www.sooplive.com/station/${comment.userId}`} target="_blank" rel="noopener noreferrer" className="hover:underline text-inherit no-underline">{comment.author}</a></h4><div className="px-2 py-0.5 rounded-lg text-[10px] font-black shadow-sm border bg-white dark:bg-gray-800 text-gray-500 border-gray-100 dark:border-gray-700 group-hover:border-brand/20 spring-transition tabular-nums flex items-center gap-1"><TrendingUp className="w-3 h-3" />{comment.likes.toLocaleString()}</div>
 {change.likesDiff > 0 && <span className="text-[10px] font-black text-green-500 dark:text-green-400 animate-pulse tabular-nums">+{change.likesDiff}</span>}
