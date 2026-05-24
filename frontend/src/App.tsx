@@ -7,7 +7,7 @@ import {
   ChevronDown, ChevronUp, Sun, Moon, XCircle, Clock, LogOut, CheckCircle2
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 interface Comment { id: number; author: string; userId: string; profileImage: string; content: string; likes: number; date: string; image: string | null; }
 interface ScrapeResponse { post_id: string; bj_id: string; comments: Comment[]; }
