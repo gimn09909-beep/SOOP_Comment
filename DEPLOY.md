@@ -16,10 +16,10 @@
 3.  GitHub 저장소를 연결합니다.
 4.  설정 화면에서 다음 내용을 입력합니다:
     *   **Name:** `soop-rank-api` (원하는 이름)
-    *   **Root Directory:** `backend` (중요!)
+    *   **Root Directory:** (비워둠 — repo 최상위)
     *   **Runtime:** `Node`
-    *   **Build Command:** `npm install`
-    *   **Start Command:** `node index.js`
+    *   **Build Command:** `cd frontend && npm install && npm run build && cd ../backend && npm install`
+    *   **Start Command:** `node backend/index.js`
 5.  **Free Plan**을 선택하고 배포합니다.
 6.  배포가 완료되면 `https://soop-rank-api.onrender.com` 같은 주소가 생성됩니다. **이 주소를 복사해두세요.**
 
