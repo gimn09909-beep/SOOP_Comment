@@ -8,3 +8,4 @@ frontend/dist/
 *.log
 soop-ranker-portable/
 DEPLOY.md
+*.bat
