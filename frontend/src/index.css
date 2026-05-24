@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Pretendard", "Outfit", system-ui, -apple-system, sans-serif;
+  
+  --color-brand: #0052FF;
+  --color-brand-muted: #0052FF1A;
+  
+  --shadow-premium: 0 10px 15px -3px rgba(0, 82, 255, 0.04), 0 4px 6px -4px rgba(0, 82, 255, 0.02);
+  --shadow-premium-lg: 0 20px 25px -5px rgba(0, 82, 255, 0.05), 0 8px 10px -6px rgba(0, 82, 255, 0.03);
+  --shadow-brand: 0 12px 30px -10px rgba(0, 82, 255, 0.2);
+
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 2.5rem;
+}
+
+body {
+  @apply bg-[#fafafa] text-[#111111] dark:bg-[#09090b] dark:text-[#fafafa] antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+#root {
+  @apply min-h-screen flex flex-col;
+}
+
+.glass-panel {
+  @apply bg-white/70 dark:bg-[#121214]/70 backdrop-blur-xl border border-white/20 dark:border-white/10;
+}
+
+.mesh-bg {
+  @apply fixed inset-0 pointer-events-none -z-10 opacity-30 dark:opacity-20;
+  background: 
+    radial-gradient(at 0% 0%, hsla(217, 100%, 50%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(200, 100%, 50%, 0.1) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(217, 100%, 50%, 0.1) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, hsla(200, 100%, 50%, 0.15) 0px, transparent 50%);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom noise texture overlay */
+.noise-overlay::after {
+  content: "";
+  @apply fixed inset-0 pointer-events-none opacity-[0.015] z-[9999];
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Spring motion */
+.spring-transition {
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
