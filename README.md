@@ -1,80 +1,38 @@
 # SOOP Comment Ranker
 
-SOOP 스테이션 게시물의 댓글을 추천순/최신순으로 정렬하고 엑셀 저장까지 지원하는 웹 앱입니다.
+SOOP 스테이션 게시물 댓글을 추천순/최신순으로 정렬하고 엑셀로 저장하는 도구입니다.
 
-> **Vibe Coded** — AI 비서(opencode)와의 대화로 만들어진 프로젝트입니다.
+## 주요 기능
 
-## 기능
-
-- 게시물 URL 입력 → 댓글 조회
-- 추천순 / 최신순 정렬
-- 실시간 자동 갱신 (3초)
-- 댓글 검색 + 하이라이트
-- 댓글 고정 (Pinned Monitoring)
-- 댓글 확장 (전문 보기)
-- 엑셀 다운로드
-- 다크모드
-
-## 구조
-
-```
-SOOP_Comment/
-├── backend/
-│   ├── index.js          # Express 서버 (API + 정적 파일)
-│   ├── package.json
-│   └── tests/
-│       └── api.test.js   # API 통합 테스트
-├── frontend/
-│   ├── src/
-│   │   ├── App.tsx        # 메인 컴포넌트
-│   │   ├── main.tsx       # 진입점
-│   │   ├── index.css      # Tailwind + 스타일
-│   │   ├── logic.test.ts  # 단위 테스트
-│   │   └── setupTests.ts
-│   ├── public/
-│   │   ├── favicon.svg
-│   │   └── icons.svg
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tsconfig*.json
-│   ├── eslint.config.js
-│   └── package.json
-├── .gitignore
-└── start.bat              # 로컬 실행 스크립트 (Windows)
-```
+- **댓글 랭킹:** 추천 수(UP) 기반 실시간 순위 추적 및 정렬 (3초 주기)
+- **필터링:** 키워드 검색 및 텍스트 하이라이트
+- **모니터링:** 특정 댓글 상단 고정 (Pin)
+- **데이터 내보내기:** 하이퍼링크가 포함된 엑셀(XLSX) 저장
+- **디자인:** 반응형 레이아웃 및 다크모드 지원
 
 ## 기술 스택
 
-| 계층 | 기술 |
-|------|------|
-| Frontend | React 19, TypeScript, Vite 8, Tailwind CSS v4 |
-| Backend | Node.js, Express, Axios |
-| 도구 | Vitest, Jest, Testing Library |
-| 배포 | Render.com |
+- **Frontend:** React, TypeScript, Tailwind CSS, Iconify
+- **Backend:** Node.js, Express, Axios
+- **Test:** Vitest, Jest
 
-## 로컬 실행
+## 시작하기
 
+### 로컬 실행
 ```bash
+# Windows
+./start.bat
+
+# 수동 실행
 cd frontend && npm install && npm run build
 cd ../backend && npm install && node index.js
-# http://localhost:5000
 ```
-
-Windows: `start.bat` 실행
 
 ## 테스트
-
 ```bash
-cd frontend && npx vitest run        # 단위 테스트
-cd backend && npm test               # API 통합 테스트
+# 프론트엔드 단위 테스트
+cd frontend && npx vitest run
+
+# 백엔드 API 테스트
+cd backend && npm test
 ```
-
-## 환경 변수
-
-- `VITE_API_URL` — API 주소 (기본값: `''`, 동일 출처)
-
-## 배포 (Render)
-
-- **Build**: `cd frontend && npm install && npm run build && cd ../backend && npm install`
-- **Start**: `node backend/index.js`
-- **Root**: 저장소 루트
