@@ -261,7 +261,7 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            <div className="hidden sm:flex items-center gap-6 text-[10px] font-black text-gray-400 uppercase tracking-widest tabular-nums">
+            <div className="flex items-center gap-6 text-[10px] font-black text-gray-400 uppercase tracking-widest tabular-nums">
               <div className="flex items-center gap-2">
                 <span className="opacity-40">Total</span>
                 <span className="text-gray-600 dark:text-gray-200">{data.comments.length.toLocaleString()}</span>
