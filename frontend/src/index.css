@@ -5,6 +5,8 @@
 @theme {
   --font-sans: "Pretendard", "Outfit", system-ui, -apple-system, sans-serif;
   
+  --breakpoint-xs: 480px;
+  
   --color-brand: #1d4ed8;
   --color-brand-muted: #1d4ed81A;
   

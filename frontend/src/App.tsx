@@ -114,6 +114,26 @@ const App: React.FC = () => {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   }, []);
 
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const clearSearch = () => setSearchBar('');
+
+  const resetAll = useCallback(() => {
+    setData(null);
+    setUrl('');
+    setError(null);
+    setSearchBar('');
+    setPinnedIds(new Set());
+    setExpandedIds(new Set());
+    setSortMode('likes');
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(() => { setDebouncedSearch(searchTerm); setVisibleCount(30); }, 300);
     return () => clearTimeout(t);
@@ -204,7 +224,17 @@ const App: React.FC = () => {
 
   const exportToExcel = useCallback(() => {
     const target = searchTerm ? processedComments : sortedComments; if (!target.length || !data) return;
-    const meta = [['SOOP Station Comment Ranking Data'], ['BJ ID', data.bj_id], ['Post ID', data.post_id], ['URL', url], ['Date', new Date().toLocaleString()], ['Total', target.length], [], ['Rank', 'Author', 'ID', 'Content', 'UP', 'Date', 'Image']];
+    const meta = [
+      ['SOOP Station Comment Ranking Data'],
+      ['BJ ID', data.bj_id],
+      ['Post ID', data.post_id],
+      ['URL', url],
+      ['Date', new Date().toLocaleString()],
+      ['Total Comments', target.length],
+      ['Total UP', target.reduce((sum, c) => sum + c.likes, 0)],
+      [],
+      ['Rank', 'Author', 'ID', 'Content', 'UP', 'Date', 'Image']
+    ];
     const rows = target.map((c, i) => [i + 1, c.author, c.userId, getCleanPreview(c.content), c.likes, c.date, c.image || '']);
     const ws = XLSX.utils.aoa_to_sheet([...meta, ...rows]);
     ws['!cols'] = [{ wch: 6 }, { wch: 15 }, { wch: 15 }, { wch: 50 }, { wch: 10 }, { wch: 20 }, { wch: 40 }];
@@ -232,20 +262,28 @@ const App: React.FC = () => {
 
       <header className="sticky top-0 z-50 glass-panel border-b border-gray-100 dark:border-white/10 pt-3 pb-2.5 px-3 md:px-8 shadow-sm">
         <div className="max-w-5xl mx-auto flex items-center gap-2 md:gap-6">
-          <button aria-label="홈으로 이동" className="flex items-center gap-3 cursor-pointer group flex-shrink-0 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none rounded-xl" onClick={() => { setData(null); setUrl(''); setError(null); }}>
+          <button aria-label="홈으로 이동" className="flex items-center gap-3 cursor-pointer group flex-shrink-0 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none rounded-xl" onClick={resetAll}>
             <div className="w-8 h-8 md:w-9 md:h-9 bg-brand rounded-xl flex items-center justify-center text-white shadow-brand spring-transition group-hover:rotate-6 group-hover:scale-105 active:scale-[0.98] relative overflow-hidden flex-shrink-0"><div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent" /><Icon icon="solar:chat-round-line-linear" className="w-4.5 h-4.5 md:w-5.5 md:h-5.5 relative z-10" /></div>
             <div className="hidden md:flex items-center gap-1.5"><span className="text-sm font-black tracking-[-0.05em] uppercase">SOOP</span><span className="text-sm font-medium text-brand">RANK</span></div>
           </button>
-          <div className="flex-1 min-w-0 max-w-2xl relative group"><Icon icon="solar:magnifer-linear" className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-brand spring-transition w-3.5 h-3.5 md:w-4 md:h-4" /><input type="text" placeholder={data ? "검색..." : "게시물 주소 입력"} className="w-full pl-9 md:pl-11 pr-3 md:pr-5 py-2 md:py-2.5 bg-gray-100 dark:bg-white/5 rounded-xl focus:outline-none focus:ring-4 focus:ring-brand/10 spring-transition font-semibold text-xs md:text-sm border border-transparent focus:bg-white dark:focus:bg-white/10 focus:border-gray-200 dark:focus:border-white/10 shadow-inner dark:text-white" value={data ? searchTerm : url} onChange={(e) => data ? setSearchBar(e.target.value) : setUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !data && fetchComments()} /></div>
-          <div className="flex items-center gap-1 md:gap-2">{!data ? (<button onClick={() => fetchComments()} disabled={loading || !url} className="px-3 md:px-5 py-2 md:py-2.5 bg-brand text-white font-bold rounded-xl hover:bg-brand/90 disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-gray-600 spring-transition shadow-brand active:scale-[0.98] text-[10px] md:text-xs flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]">{loading ? <Icon icon="solar:refresh-linear" className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Icon icon="solar:graph-up-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" />}<span className="hidden xs:inline">조회</span><span className="xs:hidden md:inline">조회하기</span></button>) : (<button onClick={() => { setData(null); setUrl(''); setError(null); }} className="px-2 md:px-4 py-2 md:py-2.5 text-gray-400 dark:text-gray-500 hover:text-red-500 spring-transition rounded-xl hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-gray-100 dark:hover:border-white/10 active:scale-[0.98] text-[10px] md:text-xs font-bold flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]"><Icon icon="solar:logout-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden xs:inline">종료</span></button>)}<div className="w-px h-4 md:h-5 bg-gray-200 dark:bg-white/10 mx-0.5 md:mx-1" /><button aria-label="다크모드 전환" onClick={() => setIsDark(!isDark)} className="p-1.5 md:p-2.5 text-gray-400 dark:text-gray-500 hover:text-brand dark:hover:text-yellow-400 spring-transition rounded-xl active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">{isDark ? <Icon icon="solar:sun-linear" className="w-4 h-4 md:w-4.5 md:h-4.5" /> : <Icon icon="solar:moon-linear" className="w-4 h-4 md:w-4.5 md:h-4.5" />}</button></div>
+          <div className="flex-1 min-w-0 max-w-2xl relative group">
+            <Icon icon="solar:magnifer-linear" className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 group-focus-within:text-brand spring-transition w-3.5 h-3.5 md:w-4 md:h-4" />
+            <input type="text" placeholder={data ? "댓글 검색..." : "게시물 주소 입력 (https://...)"} className="w-full pl-9 md:pl-11 pr-10 md:pr-12 py-2 md:py-2.5 bg-gray-100 dark:bg-white/5 rounded-xl focus:outline-none focus:ring-4 focus:ring-brand/10 spring-transition font-semibold text-xs md:text-sm border border-transparent focus:bg-white dark:focus:bg-white/10 focus:border-gray-200 dark:focus:border-white/10 shadow-inner dark:text-white" value={data ? searchTerm : url} onChange={(e) => data ? setSearchBar(e.target.value) : setUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !data && fetchComments()} />
+            {(data ? searchTerm : url) && (
+              <button onClick={() => data ? setSearchBar('') : setUrl('')} className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 spring-transition rounded-lg hover:bg-gray-200 dark:hover:bg-white/10" title="지우기">
+                <Icon icon="solar:close-circle-bold" className="w-4 h-4 md:w-4.5 md:h-4.5" />
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-1 md:gap-2">{!data ? (<button onClick={() => fetchComments()} disabled={loading || !url} className="px-3 md:px-5 py-2 md:py-2.5 bg-brand text-white font-bold rounded-xl hover:bg-brand/90 disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-gray-600 spring-transition shadow-brand active:scale-[0.98] text-[10px] md:text-xs flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]">{loading ? <Icon icon="solar:refresh-linear" className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Icon icon="solar:graph-up-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" />}<span className="hidden xs:inline">조회</span><span className="xs:hidden md:inline">조회하기</span></button>) : (<button onClick={resetAll} className="px-2 md:px-4 py-2 md:py-2.5 text-gray-400 dark:text-gray-500 hover:text-red-500 spring-transition rounded-xl hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-gray-100 dark:hover:border-white/10 active:scale-[0.98] text-[10px] md:text-xs font-bold flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]"><Icon icon="solar:logout-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden xs:inline">종료</span></button>)}<div className="w-px h-4 md:h-5 bg-gray-200 dark:bg-white/10 mx-0.5 md:mx-1" /><button aria-label="다크모드 전환" onClick={() => setIsDark(!isDark)} className="p-1.5 md:p-2.5 text-gray-400 dark:text-gray-500 hover:text-brand dark:hover:text-yellow-400 spring-transition rounded-xl active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">{isDark ? <Icon icon="solar:sun-linear" className="w-4 h-4 md:w-4.5 md:h-4.5" /> : <Icon icon="solar:moon-linear" className="w-4 h-4 md:w-4.5 md:h-4.5" />}</button></div>
         </div>
       </header>
 
       {data && !error && (
         <div className="sticky top-[58px] md:top-[64px] z-40 bg-[#fafafa]/90 dark:bg-[#09090b]/90 backdrop-blur-xl border-b border-gray-100 dark:border-white/5 animate-in slide-in-from-top-4 duration-500 overflow-x-auto no-scrollbar">
-          <div className="max-w-5xl mx-auto px-4 md:px-8 py-2 md:py-3 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="flex items-center gap-2 px-2 py-1 bg-brand/[0.03] dark:bg-brand/[0.08] rounded-lg border border-brand/10">
+          <div className="max-w-5xl mx-auto px-3 md:px-8 py-2 md:py-3 flex items-center justify-between gap-1 md:gap-4">
+            <div className="flex items-center gap-1.5 md:gap-3 flex-shrink-0">
+              <div className="flex items-center gap-1 md:gap-2 px-1.5 md:px-2 py-1 bg-brand/[0.03] dark:bg-brand/[0.08] rounded-lg border border-brand/10">
                 <div className="relative w-2.5 h-2.5 flex items-center justify-center">
                   <svg className="absolute inset-0 w-full h-full -rotate-90">
                     <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.5" fill="none" className="text-brand/10" />
@@ -253,26 +291,33 @@ const App: React.FC = () => {
                   </svg>
                   <div className="w-1 h-1 bg-brand rounded-full animate-pulse" />
                 </div>
-                <span className="text-[10px] font-black text-brand uppercase tabular-nums tracking-widest leading-none">Live</span>
+                <span className="text-[10px] font-black text-brand uppercase tabular-nums tracking-widest leading-none hidden sm:inline">Live</span>
               </div>
-              <div className="flex items-center gap-1 bg-gray-100 dark:bg-white/5 p-0.5 rounded-lg border border-gray-100 dark:border-white/5">
-                <button onClick={() => setSortMode('likes')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold spring-transition ${sortMode === 'likes' ? 'bg-white dark:bg-gray-800 text-brand shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}><Icon icon="solar:graph-up-linear" className="w-3.5 h-3.5" />추천순</button>
-                <button onClick={() => setSortMode('latest')} className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[10px] font-bold spring-transition ${sortMode === 'latest' ? 'bg-white dark:bg-gray-800 text-brand shadow-sm' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}><Icon icon="solar:clock-circle-linear" className="w-3.5 h-3.5" />최신순</button>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-6 text-[10px] font-black text-gray-400 uppercase tracking-widest tabular-nums">
-              <div className="flex items-center gap-2">
-                <span className="opacity-40">Total</span>
-                <span className="text-gray-600 dark:text-gray-200">{data.comments.length.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="opacity-40">Sum UP</span>
-                <span className="text-brand">{data.comments.reduce((sum, c) => sum + c.likes, 0).toLocaleString()}</span>
+              <div className="relative flex items-center bg-gray-100/80 dark:bg-white/5 p-1 rounded-xl border border-gray-200/50 dark:border-white/5">
+                <div className={`absolute h-[calc(100%-8px)] transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] bg-white dark:bg-white/10 shadow-sm rounded-lg ${sortMode === 'likes' ? 'left-1 w-14 sm:w-[70px]' : 'left-[60px] sm:left-[74px] w-14 sm:w-[70px]'}`} />
+                <button onClick={() => setSortMode('likes')} className={`relative z-10 flex items-center justify-center gap-1 sm:gap-1.5 w-14 sm:w-[70px] py-1.5 rounded-lg text-[10px] font-bold spring-transition ${sortMode === 'likes' ? 'text-brand dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
+                  <Icon icon="solar:graph-up-linear" className="w-3.5 h-3.5" />추천순
+                </button>
+                <button onClick={() => setSortMode('latest')} className={`relative z-10 flex items-center justify-center gap-1 sm:gap-1.5 w-14 sm:w-[70px] py-1.5 rounded-lg text-[10px] font-bold spring-transition ${sortMode === 'latest' ? 'text-brand dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
+                  <Icon icon="solar:clock-circle-linear" className="w-3.5 h-3.5" />최신순
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="flex items-center gap-2 md:gap-6 text-[10px] font-black text-gray-400 uppercase tracking-widest tabular-nums flex-shrink-0">
+              <div className="flex items-center gap-1 md:gap-2">
+                <span className="opacity-40 hidden xs:inline">Total</span>
+                <span className="opacity-40 xs:hidden">T</span>
+                <span className="text-gray-600 dark:text-gray-200">{processedComments.length.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1 md:gap-2">
+                <span className="opacity-40 hidden xs:inline">TOTAL UP</span>
+                <span className="opacity-40 xs:hidden">UP</span>
+                <span className="text-brand">{processedComments.reduce((sum, c) => sum + c.likes, 0).toLocaleString()}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-0.5 md:gap-1 flex-shrink-0">
               <button onClick={toggleAllExpand} title={expandedIds.size > 0 ? "모두 접기" : "모두 펼치기"} className={`flex items-center gap-1.5 px-3 py-1 rounded-lg spring-transition active:scale-[0.98] text-[10px] font-bold ${expandedIds.size > 0 ? 'bg-brand/10 text-brand' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5'}`}>
                 <Icon icon={expandedIds.size > 0 ? "solar:widget-bold" : "solar:widget-linear"} className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">{expandedIds.size > 0 ? "모두 접기" : "모두 펼치기"}</span>
@@ -342,7 +387,19 @@ const App: React.FC = () => {
           </div>
         )}
         {loading && (
-          <div className="mt-8 md:mt-16 space-y-4"><div className="mb-6 md:mb-8 flex items-center gap-3 animate-in fade-in duration-700"><div className="w-2 h-2 bg-brand rounded-full animate-bounce" /><span className="text-xs md:text-sm font-bold text-brand uppercase tracking-widest">데이터를 불러오고 있습니다...</span></div><div className="bg-white dark:bg-[#161b22] rounded-[1.5rem] md:rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-premium overflow-hidden divide-y divide-gray-50 dark:divide-white/5">{[...Array(6)].map((_, i) => (<div key={i} className="p-4 md:p-7 md:px-10 flex gap-3 md:gap-10 items-start"><div className="flex flex-col items-center gap-2 md:gap-4 pt-1 md:pt-2"><Skeleton className="w-7 h-7 md:w-9 md:h-9" /><Skeleton className="w-4 h-2 md:w-5 md:h-3" /></div><Skeleton className="w-9 h-9 md:w-12 md:h-12 rounded-xl" /><div className="flex-1 space-y-2 md:space-y-3"><div className="flex justify-between items-start"><div className="space-y-1 md:space-y-2"><Skeleton className="w-20 h-4 md:w-28 md:h-5" /><Skeleton className="w-28 h-2 md:w-40 md:h-2.5" /></div><Skeleton className="w-12 h-6 md:w-16 md:h-7" /></div><Skeleton className="w-full h-3 md:h-3.5" /><Skeleton className="w-2/3 h-3 md:h-3.5" /></div></div>))}</div></div>
+          <div className="mt-8 md:mt-16 space-y-4">
+            <div className="mb-6 md:mb-8 flex flex-col items-center gap-4 animate-in fade-in duration-700">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-brand rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-brand/60 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <div className="w-2 h-2 bg-brand/30 rounded-full animate-bounce [animation-delay:0.4s]" />
+              </div>
+              <span className="text-xs md:text-sm font-bold text-brand uppercase tracking-[0.2em]">게시물에서 데이터를 수집하는 중입니다</span>
+            </div>
+            <div className="bg-white dark:bg-[#161b22] rounded-[1.5rem] md:rounded-[2rem] border border-gray-100 dark:border-white/5 shadow-premium overflow-hidden divide-y divide-gray-50 dark:divide-white/5">
+              {[...Array(6)].map((_, i) => (<div key={i} className="p-4 md:p-7 md:px-10 flex gap-3 md:gap-10 items-start"><div className="flex flex-col items-center gap-2 md:gap-4 pt-1 md:pt-2"><Skeleton className="w-7 h-7 md:w-9 md:h-9" /><Skeleton className="w-4 h-2 md:w-5 md:h-3" /></div><Skeleton className="w-9 h-9 md:w-12 md:h-12 rounded-xl" /><div className="flex-1 space-y-2 md:space-y-3"><div className="flex justify-between items-start"><div className="space-y-1 md:space-y-2"><Skeleton className="w-20 h-4 md:w-28 md:h-5" /><Skeleton className="w-28 h-2 md:w-40 md:h-2.5" /></div><Skeleton className="w-12 h-6 md:w-16 md:h-7" /></div><Skeleton className="w-full h-3 md:h-3.5" /><Skeleton className="w-2/3 h-3 md:h-3.5" /></div></div>))}
+            </div>
+          </div>
         )}
         {data && !error && (
           <div className="mt-8 space-y-6 animate-in fade-in duration-700">
@@ -355,15 +412,25 @@ const App: React.FC = () => {
                 <div className="p-4 md:p-8 text-center bg-gray-50/30 dark:bg-white/[0.01]"><button onClick={() => setVisibleCount(prev => prev + 50)} className="px-6 md:px-10 py-3 md:py-3.5 bg-white dark:bg-gray-800 text-brand font-bold rounded-xl border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md spring-transition active:scale-[0.98] text-xs md:text-sm focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">더 많은 댓글 보기 (+50)</button><br /><button onClick={() => setVisibleCount(processedComments.length)} className="mt-2 md:mt-3 text-[10px] md:text-[11px] font-bold text-gray-400 dark:text-gray-500 hover:text-brand spring-transition focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none rounded-lg px-2 md:px-3 py-1">한번에 모두 보기</button></div>
               )}
               {processedComments.length === 0 && (
-                <div className="py-24 md:py-48 text-center animate-in fade-in duration-700"><div className="w-20 h-20 md:w-24 md:h-24 bg-gray-50 dark:bg-white/5 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 md:mb-8 border border-gray-100 dark:border-white/10 shadow-inner"><Icon icon="solar:magnifer-linear" className="w-8 h-8 md:w-10 md:h-10 text-gray-300 dark:text-gray-600" /></div><p className="text-lg md:text-xl font-bold text-gray-400 dark:text-gray-600 italic">검색 결과가 없습니다.</p></div>
+                <div className="py-24 md:py-48 text-center animate-in fade-in duration-700">
+                  <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-50 dark:bg-white/5 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 md:mb-8 border border-gray-100 dark:border-white/10 shadow-inner">
+                    <Icon icon="solar:magnifer-linear" className="w-8 h-8 md:w-10 md:h-10 text-gray-300 dark:text-gray-600" />
+                  </div>
+                  <p className="text-lg md:text-xl font-bold text-gray-400 dark:text-gray-600 italic mb-6">검색 결과가 없습니다.</p>
+                  <button onClick={clearSearch} className="px-6 py-2.5 bg-brand/10 text-brand font-bold rounded-xl hover:bg-brand/20 spring-transition active:scale-[0.98] text-sm">필터 초기화</button>
+                </div>
               )}
             </div>
           </div>
         )}
       </main>
-      <div className="fixed bottom-4 right-4 md:bottom-10 md:right-10 flex flex-col gap-2 md:gap-4 z-50">
-        <button aria-label="맨 위로 가기" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-10 h-10 md:w-12 md:h-12 glass-panel border-gray-200 dark:border-white/10 rounded-xl md:rounded-2xl shadow-premium-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-brand spring-transition hover:-translate-y-1.5 active:scale-[0.98] group focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"><Icon icon="solar:arrow-up-linear" className="w-4 h-4 md:w-5 md:h-5 group-hover:stroke-[3px] spring-transition" /></button>
-        <button aria-label="맨 아래로 가기" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="w-10 h-10 md:w-12 md:h-12 glass-panel border-gray-200 dark:border-white/10 rounded-xl md:rounded-2xl shadow-premium-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-brand spring-transition hover:translate-y-1.5 active:scale-[0.98] group focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"><Icon icon="solar:arrow-down-linear" className="w-4 h-4 md:w-5 md:h-5 group-hover:stroke-[3px] spring-transition" /></button>
+      <div className={`fixed bottom-4 right-4 md:bottom-10 md:right-10 flex flex-col gap-2 md:gap-4 z-50 transition-all duration-500 ${showScrollTop ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
+        <button aria-label="맨 위로 가기" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="w-10 h-10 md:w-12 md:h-12 glass-panel border-gray-200 dark:border-white/10 rounded-xl md:rounded-2xl shadow-premium-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-brand spring-transition hover:-translate-y-1.5 active:scale-[0.98] group focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
+          <Icon icon="solar:arrow-up-linear" className="w-4 h-4 md:w-5 md:h-5 group-hover:stroke-[3px] spring-transition" />
+        </button>
+        <button aria-label="맨 아래로 가기" onClick={() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' })} className="w-10 h-10 md:w-12 md:h-12 glass-panel border-gray-200 dark:border-white/10 rounded-xl md:rounded-2xl shadow-premium-lg flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-brand spring-transition hover:translate-y-1.5 active:scale-[0.98] group focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">
+          <Icon icon="solar:arrow-down-linear" className="w-4 h-4 md:w-5 md:h-5 group-hover:stroke-[3px] spring-transition" />
+        </button>
       </div>
     </div>
   );
