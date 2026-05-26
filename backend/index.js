@@ -44,7 +44,7 @@ async function fetchPage(bj_id, post_id, page, per_page = 100) {
   const apiUrl = `https://api-channel.sooplive.com/v1.1/channel/${bj_id}/post/${post_id}/comment?page=${page}&per_page=${per_page}`;
   try {
     const response = await axios.get(apiUrl, {
-      timeout: 4000,
+      timeout: 5000,
       headers: {
         'Accept': 'application/json, text/plain, */*',
         'Origin': 'https://www.sooplive.com',
@@ -53,7 +53,10 @@ async function fetchPage(bj_id, post_id, page, per_page = 100) {
       }
     });
     return response.data;
-  } catch (err) { return { data: [] }; }
+  } catch (err) {
+    console.error(`[Fetch Error] Page ${page}:`, err.message);
+    return { data: [] };
+  }
 }
 
 app.get('/api/comments', async (req, res) => {
@@ -92,7 +95,12 @@ app.get('/api/comments', async (req, res) => {
       }
     }
 
-    const formatted = comments.map(c => ({
+    // Remove duplicates by pCommentNo (comments might shift pages during scraping)
+    const commentMap = new Map();
+    comments.forEach(c => { if (c && c.pCommentNo) commentMap.set(c.pCommentNo, c); });
+    const uniqueComments = Array.from(commentMap.values());
+
+    const formatted = uniqueComments.map(c => ({
       id: c.pCommentNo,
       author: c.userNick,
       userId: c.userId,
@@ -106,7 +114,10 @@ app.get('/api/comments', async (req, res) => {
     const result = { post_id, bj_id, comments: formatted };
     cache.set(cacheKey, { timestamp: Date.now(), data: result });
     res.json(result);
-  } catch (error) { res.status(500).json({ error: '데이터를 가져오는데 실패했습니다.' }); }
+  } catch (error) {
+    console.error('[API Error]:', error);
+    res.status(500).json({ error: '데이터를 가져오는데 실패했습니다.' });
+  }
 });
 
 app.get(/^.*$/, (req, res) => { res.sendFile(path.join(frontendPath, 'index.html')); });
