@@ -5,34 +5,56 @@ import { Icon } from '@iconify/react';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
-interface Comment { id: number; author: string; userId: string; profileImage: string; content: string; likes: number; date: string; image: string | null; }
+import { tokenizeContent, getClassicName, type Token } from './utils';
+
+export interface Comment { id: number; author: string; userId: string; profileImage: string; content: string; likes: number; date: string; image: string | null; tokens?: Token[]; preview?: string; }
 interface ScrapeResponse { post_id: string; bj_id: string; comments: Comment[]; }
 interface RankState { rank: number; likes: number; }
 
-const decodeEntities = (text: string) => { if (!text) return ''; const doc = new DOMParser().parseFromString(text, 'text/html'); return doc.documentElement.textContent || ''; };
-const getCleanPreview = (text: string) => { const d = decodeEntities(text); return d.replace(/(https?:\/\/[^\s]+)/g, ' ').replace(/\/[\u3131-\u318E\uAC00-\uD7A3a-zA-Z0-9?!\u3131-\u318E\uAC00-\uD7A3!]+(_s)?\//g, ' ').replace(/\s+/g, ' ').trim(); };
+const EMOTICON_URL_CACHE = new Map<string, string[]>();
 
-const formatContent = (text: string, highlight: string = '') => {
-  const d = decodeEntities(text);
-  const regex = /((?:https?:\/\/[^\s]+)|(?:\/[\u3131-\u318E\uAC00-\uD7A3a-zA-Z0-9?!\u3131-\u318E\uAC00-\uD7A3!]+(?:_s)?\/))/g;
-  return d.split(regex).map((part, i) => {
-    if (part.startsWith('http')) {
-      try { const url = new URL(part); return <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2 py-0.5 mx-0.5 bg-brand/5 text-brand rounded-lg text-sm font-bold border border-brand/10 hover:bg-brand hover:text-white spring-transition align-baseline mb-0.5 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"><Icon icon="solar:export-linear" className="w-3 h-3" />{url.hostname + (url.pathname.length > 15 ? '...' : url.pathname)}</a>; } catch { return part; }
+
+
+const SafeEmoticon: React.FC<{ name: string; isSmall: boolean; part: string; id?: string }> = React.memo(({ name, isSmall, part, id }) => {
+  const urls = useMemo(() => {
+    const cacheKey = `${name}_${isSmall}_${id}`;
+    if (EMOTICON_URL_CACHE.has(cacheKey)) return EMOTICON_URL_CACHE.get(cacheKey)!;
+    const enc = encodeURIComponent(name);
+    const cl = encodeURIComponent(getClassicName(name));
+    const list = [];
+    if (id) list.push(`https://res.sooplive.com/images/chat/emoticon/big/${id}.png`, `https://res.sooplive.com/images/chat/emoticon/big/${id}.gif`);
+    if (isSmall) list.push(`https://szimg.sooplive.co.kr/img/emoticon/${enc}_s.png`, `https://szimg.sooplive.co.kr/img/emoticon/${enc}_s.gif`);
+    list.push(`https://szimg.sooplive.co.kr/img/emoticon/${enc}.png`, `https://szimg.sooplive.co.kr/img/emoticon/${enc}.gif`, `https://res.sooplive.com/images/chat/emoticon/small/${cl}.png`, `https://res.sooplive.com/images/chat/emoticon/small/${cl}.gif`);
+    const legacy = list.map(u => u.replace('sooplive.co.kr', 'afreecatv.com').replace('res.sooplive.com', 'res.afreecatv.com'));
+    const final = Array.from(new Set([...list, ...legacy]));
+    EMOTICON_URL_CACHE.set(cacheKey, final);
+    return final;
+  }, [name, isSmall, id]);
+
+
+  const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const currentIdx = parseInt(img.getAttribute('data-idx') || '0');
+    if (currentIdx < urls.length - 1) { const nextIdx = currentIdx + 1; img.setAttribute('data-idx', nextIdx.toString()); img.src = urls[nextIdx]; }
+    else { img.style.display = 'none'; img.insertAdjacentHTML('afterend', part); }
+  };
+  return <img src={urls[0]} alt={part} data-idx="0" className={isSmall ? "inline-block w-8 h-8 align-middle mx-0.5 hover:scale-150 spring-transition cursor-pointer" : "inline-block w-6 h-6 align-middle mx-0.5 hover:scale-150 spring-transition cursor-pointer"} loading="lazy" onError={handleError} />;
+});
+
+const renderContent = (tokens: Token[], highlight: string = '') => {
+  return tokens.map((token, i) => {
+    if (token.type === 'link') {
+      try { const url = new URL(token.value); return <a key={i} href={token.value} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-2 py-0.5 mx-0.5 bg-brand/5 text-brand rounded-lg text-sm font-bold border border-brand/10 hover:bg-brand hover:text-white spring-transition align-baseline mb-0.5 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none"><Icon icon="solar:export-linear" className="w-3 h-3" />{url.hostname + (url.pathname.length > 15 ? '...' : url.pathname)}</a>; } catch { return token.value; }
     }
-    if (part.startsWith('/') && part.endsWith('/')) {
-      const isSmall = part.includes('_s/');
-      const name = isSmall ? part.slice(1, -3) : part.slice(1, -1);
-      const smallMap: Record<string, string> = { 'ㄱㅇㅇ': '205', 'ㅋ': '206', 'ㅎㅇ': '207', 'ㅂㅇ': '208', 'ㅠㅠ': '209', 'ㄷㄷ': '210', 'ㅇㅈ': '211', 'ㄴㅇㅈ': '212', 'ㅊㅋ': '213', 'ㄱㄱ': '214', 'ㅅㄱ': '215', 'ㅈㅅ': '216', 'ㅗㅜㅑ': '217', 'ㅗ': '218', 'ㅂㄷㅂㄷ': '219', 'ㄲㅂ': '220', '댄스': '221', '문열어': '222', 'ㄴㅇㅂㅈ': '223', 'ㄹㅇ': '224', 'ㅈㅁ': '225', 'ㅈㄱ': '226', 'ㅈㅂ': '227', '쉿': '228', '냠냠': '229', '졸려': '230' };
-      if (isSmall) { const id = smallMap[name]; return <img key={i} src={id ? `https://res.sooplive.com/images/chat/emoticon/big/${id}.png` : `https://szimg.sooplive.co.kr/img/emoticon/${encodeURIComponent(name)}_s.png`} alt={part} className="inline-block w-8 h-8 align-middle mx-0.5 hover:scale-150 spring-transition cursor-pointer" onError={(e) => { e.currentTarget.src = `https://szimg.sooplive.co.kr/img/emoticon/${encodeURIComponent(name)}_s.png`; }} />; }
-      const classic: Record<string, string> = { 'ㅠㅠ': 'cry', 'ㅋㅋ': 'laugh', 'ㅎㅎ': 'smile', '우와': 'wow', '굿': 'good', '??': 'question', '!!': 'exclamation', '하트': 'heart', '별': 'star' };
-      return <img key={i} src={`https://res.sooplive.com/images/chat/emoticon/small/${encodeURIComponent(classic[name] || name)}.png`} alt={part} className="inline-block w-6 h-6 align-middle mx-0.5 hover:scale-150 spring-transition cursor-pointer" onError={(e) => { if (e.currentTarget.src.endsWith('.png')) e.currentTarget.src = e.currentTarget.src.replace('.png', '.gif'); else { e.currentTarget.style.display = 'none'; e.currentTarget.after(part); } }} />;
+    if (token.type === 'emoticon') return <SafeEmoticon key={i} name={token.value} isSmall={!!token.isSmall} part={`/${token.value}${token.isSmall ? '_s' : ''}/`} id={token.id} />;
+    if (highlight && token.value.toLowerCase().includes(highlight.toLowerCase())) {
+      return token.value.split(new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')).map((chunk, j) => chunk.toLowerCase() === highlight.toLowerCase() ? <mark key={`${i}-${j}`} className="bg-brand/20 text-brand font-bold rounded-sm px-0.5">{chunk}</mark> : chunk);
     }
-    if (highlight && part.toLowerCase().includes(highlight.toLowerCase())) {
-        return part.split(new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')).map((chunk, j) => chunk.toLowerCase() === highlight.toLowerCase() ? <mark key={`${i}-${j}`} className="bg-brand/20 text-brand font-bold rounded-sm px-0.5">{chunk}</mark> : chunk);
-    }
-    return part;
+    return token.value;
   });
 };
+
+
 
 const Skeleton = ({ className }: { className?: string }) => <div className={`animate-pulse bg-gray-100 dark:bg-gray-800 rounded-lg ${className}`} />;
 
@@ -87,7 +109,7 @@ const CommentRow: React.FC<{ comment: Comment; isPinnedSection: boolean; current
             <button aria-label="펼치기" onClick={() => toggleExpand(comment.id)} className={`p-2 rounded-xl spring-transition hover:bg-gray-100 dark:hover:bg-white/5 ${isExpanded ? 'text-brand bg-brand/5' : 'text-gray-400'}`}><Icon icon={isExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} className="w-4.5 h-4.5" /></button>
           </div>
         </div>
-        <div className="w-full break-all overflow-wrap-anywhere">{!isExpanded ? (<p className="text-gray-500 dark:text-gray-400 text-[13px] sm:text-[14px] leading-relaxed line-clamp-1 cursor-pointer hover:text-gray-900 dark:hover:text-white spring-transition font-medium" onClick={() => toggleExpand(comment.id)}>{getCleanPreview(comment.content) || "콘텐츠 데이터 포함됨"}</p>) : (<div className="mt-2 sm:mt-3 animate-in fade-in slide-in-from-top-1 duration-400 cursor-pointer" onClick={() => toggleExpand(comment.id)}><div className="relative p-3 sm:p-5 md:p-7 bg-gray-50/50 dark:bg-white/[0.015] rounded-2xl border border-gray-100/50 dark:border-white/5"><div className="absolute left-0 top-4 sm:top-6 bottom-4 sm:bottom-6 w-1 bg-brand/20 rounded-full" /><div className="text-gray-800 dark:text-[#d1d5db] text-[14px] sm:text-[15px] md:text-[16px] leading-[1.7] sm:leading-[1.8] font-medium whitespace-pre-wrap [word-break:keep-all]">{formatContent(comment.content, searchTerm)}</div>{comment.image && (<div className="mt-4 sm:mt-6 relative group/img"><div className="absolute inset-0 bg-brand/5 blur-3xl opacity-0 group-hover/img:opacity-100 spring-transition" /><img src={comment.image} alt="" className="max-h-[400px] sm:max-h-[500px] w-auto rounded-xl border border-gray-200 dark:border-white/10 shadow-lg relative z-10 spring-transition hover:scale-[1.01] cursor-zoom-in" loading="lazy" /></div>)}</div></div>)}</div>
+        <div className="w-full break-all overflow-wrap-anywhere">{!isExpanded ? (<p className="text-gray-500 dark:text-gray-400 text-[13px] sm:text-[14px] leading-relaxed line-clamp-1 cursor-pointer hover:text-gray-900 dark:hover:text-white spring-transition font-medium" onClick={() => toggleExpand(comment.id)}>{comment.preview || "콘텐츠 데이터 포함됨"}</p>) : (<div className="mt-2 sm:mt-3 animate-in fade-in slide-in-from-top-1 duration-400 cursor-pointer" onClick={() => toggleExpand(comment.id)}><div className="relative p-3 sm:p-5 md:p-7 bg-gray-50/50 dark:bg-white/[0.015] rounded-2xl border border-gray-100/50 dark:border-white/5"><div className="absolute left-0 top-4 sm:top-6 bottom-4 sm:bottom-6 w-1 bg-brand/20 rounded-full" /><div className="text-gray-800 dark:text-[#d1d5db] text-[14px] sm:text-[15px] md:text-[16px] leading-[1.7] sm:leading-[1.8] font-medium whitespace-pre-wrap [word-break:keep-all]">{renderContent(comment.tokens || [], searchTerm)}</div>{comment.image && (<div className="mt-4 sm:mt-6 relative group/img"><div className="absolute inset-0 bg-brand/5 blur-3xl opacity-0 group-hover/img:opacity-100 spring-transition" /><img src={comment.image} alt="" className="max-h-[400px] sm:max-h-[500px] w-auto rounded-xl border border-gray-200 dark:border-white/10 shadow-lg relative z-10 spring-transition hover:scale-[1.01] cursor-zoom-in" loading="lazy" /></div>)}</div></div>)}</div>
       </div>
     </div>
   );
@@ -164,9 +186,9 @@ const App: React.FC = () => {
       });
 
       setData(prev => {
-        // Calculate new ranks for potential state transition
+        const comments = res.data.comments.map(c => ({ ...c, ...tokenizeContent(c.content) }));
         const newRanks: Record<number, RankState> = {};
-        [...res.data.comments]
+        [...comments]
           .sort((a, b) => b.likes - a.likes || b.id - a.id)
           .forEach((c, i) => { newRanks[c.id] = { rank: i + 1, likes: c.likes }; });
         
@@ -177,7 +199,7 @@ const App: React.FC = () => {
             .forEach((c, i) => { oldRanks[c.id] = { rank: i + 1, likes: c.likes }; });
           setPrevRanks(oldRanks);
         }
-        return res.data;
+        return { ...res.data, comments };
       });
       setCountdown(3);
     } catch (err) {
@@ -235,7 +257,7 @@ const App: React.FC = () => {
       [],
       ['Rank', 'Author', 'ID', 'Content', 'UP', 'Date', 'Image']
     ];
-    const rows = target.map((c, i) => [i + 1, c.author, c.userId, getCleanPreview(c.content), c.likes, c.date, c.image || '']);
+    const rows = target.map((c, i) => [i + 1, c.author, c.userId, c.preview || '', c.likes, c.date, c.image || '']);
     const ws = XLSX.utils.aoa_to_sheet([...meta, ...rows]);
     ws['!cols'] = [{ wch: 6 }, { wch: 15 }, { wch: 15 }, { wch: 50 }, { wch: 10 }, { wch: 20 }, { wch: 40 }];
     for (let i = 0; i < target.length; i++) {
