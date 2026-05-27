@@ -35,7 +35,11 @@ function parseSoopUrl(url) {
     const parsed = new URL(url);
     const parts = parsed.pathname.split('/').filter(p => p);
     if (parts[0] === 'station' && parts[2] === 'post') return { bj_id: parts[1], post_id: parts[3] };
-    if (parsed.hostname.includes('afreecatv.com')) return { bj_id: parts[0], post_id: parts[2] };
+    if (parsed.hostname.includes('afreecatv.com')) {
+      const postIdx = parts.indexOf('post');
+      if (postIdx > 0 && parts[postIdx + 1]) return { bj_id: parts[postIdx - 1], post_id: parts[postIdx + 1] };
+      return { bj_id: parts[0], post_id: parts[2] };
+    }
     return null;
   } catch (e) { return null; }
 }
@@ -104,7 +108,7 @@ app.get('/api/comments', async (req, res) => {
       id: c.pCommentNo,
       author: c.userNick,
       userId: c.userId,
-      profileImage: c.profileImage,
+      profileImage: c.profileImage?.startsWith('//') ? `https:${c.profileImage}` : c.profileImage,
       content: c.comment,
       likes: c.likeCnt,
       date: c.regDate,
