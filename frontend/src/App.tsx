@@ -106,14 +106,14 @@ const CommentRow: React.FC<{ comment: Comment; isPinnedSection: boolean; current
           <div className="flex items-center gap-1 ml-4 flex-shrink-0 opacity-0 group-hover:opacity-100 spring-transition translate-x-2 group-hover:translate-x-0">
             <button aria-label="고정" onClick={() => togglePin(comment.id)} className={`p-2 rounded-xl spring-transition hover:bg-gray-100 dark:hover:bg-white/5 ${isPinned ? 'text-brand bg-brand/5' : 'text-gray-300 dark:text-gray-700'}`}><Icon icon={isPinned ? "solar:pin-bold" : "solar:pin-linear"} className={`w-4 h-4 ${isPinned ? 'rotate-45' : ''}`} /></button>
             <a aria-label="원문" href={`${url.split('#')[0]}#comment_noti${comment.id}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl text-gray-400 hover:text-brand spring-transition hover:bg-gray-100 dark:hover:bg-white/5"><Icon icon="solar:export-linear" className="w-4 h-4" /></a>
-            <button aria-label="펼치기" onClick={() => toggleExpand(comment.id)} className={`p-2 rounded-xl spring-transition hover:bg-gray-100 dark:hover:bg-white/5 ${isExpanded ? 'text-brand bg-brand/5' : 'text-gray-400'}`}><Icon icon={isExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} className="w-4.5 h-4.5" /></button>
+            <button aria-label="펼치기" onClick={() => toggleExpand(comment.id)} className={`p-2 rounded-xl spring-transition hover:bg-gray-100 dark:hover:bg-white/5 ${isExpanded ? 'text-brand bg-brand/5' : 'text-gray-400'}`}><Icon icon={isExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} className="w-[18px] h-[18px]" /></button>
           </div>
         </div>
         <div className="w-full break-all [overflow-wrap:anywhere]">{!isExpanded ? (<p className="text-gray-500 dark:text-gray-400 text-[13px] sm:text-[14px] leading-relaxed line-clamp-1 cursor-pointer hover:text-gray-900 dark:hover:text-white spring-transition font-medium" onClick={() => toggleExpand(comment.id)}>{comment.preview || "콘텐츠 데이터 포함됨"}</p>) : (<div className="mt-2 sm:mt-3 animate-in fade-in slide-in-from-top-1 duration-400 cursor-pointer" onClick={() => toggleExpand(comment.id)}><div className="relative p-3 sm:p-5 md:p-7 bg-gray-50/50 dark:bg-white/[0.015] rounded-2xl border border-gray-100/50 dark:border-white/5"><div className="absolute left-0 top-4 sm:top-6 bottom-4 sm:bottom-6 w-1 bg-brand/20 rounded-full" /><div className="text-gray-800 dark:text-[#d1d5db] text-[14px] sm:text-[15px] md:text-[16px] leading-[1.7] sm:leading-[1.8] font-medium whitespace-pre-wrap [word-break:keep-all]">{renderContent(comment.tokens || [], searchTerm)}</div>{comment.image && (<div className="mt-4 sm:mt-6 relative group/img"><div className="absolute inset-0 bg-brand/5 blur-3xl opacity-0 group-hover/img:opacity-100 spring-transition" /><img src={comment.image} alt="" className="max-h-[400px] sm:max-h-[500px] w-auto rounded-xl border border-gray-200 dark:border-white/10 shadow-lg relative z-10 spring-transition hover:scale-[1.01] cursor-zoom-in" loading="lazy" /></div>)}</div></div>)}</div>
       </div>
     </div>
   );
-}, (p, n) => p.comment.id === n.comment.id && p.comment.likes === n.comment.likes && p.comment.content === n.comment.content && p.currentRank === n.currentRank && p.isPinned === n.isPinned && p.isExpanded === n.isExpanded && p.change.likesDiff === n.change.likesDiff && p.searchTerm === n.searchTerm);
+}, (p, n) => p.comment.id === n.comment.id && p.comment.likes === n.comment.likes && p.comment.content === n.comment.content && p.currentRank === n.currentRank && p.isPinned === n.isPinned && p.isExpanded === n.isExpanded && p.change.likesDiff === n.change.likesDiff && p.change.rankDiff === n.change.rankDiff && p.change.type === n.change.type && p.searchTerm === n.searchTerm);
 
 const App: React.FC = () => {
   const [url, setUrl] = useState('');
@@ -187,22 +187,16 @@ const App: React.FC = () => {
         signal: abortControllerRef.current.signal
       });
 
-      setData(prev => {
-        const comments = res.data.comments.map(c => ({ ...c, ...tokenizeContent(c.content) }));
-        const newRanks: Record<number, RankState> = {};
-        [...comments]
+      const comments = res.data.comments.map(c => ({ ...c, ...tokenizeContent(c.content) }));
+
+      if (data) {
+        const oldRanks: Record<number, RankState> = {};
+        [...data.comments]
           .sort((a, b) => b.likes - a.likes || b.id - a.id)
-          .forEach((c, i) => { newRanks[c.id] = { rank: i + 1, likes: c.likes }; });
-        
-        if (prev) {
-          const oldRanks: Record<number, RankState> = {};
-          [...prev.comments]
-            .sort((a, b) => b.likes - a.likes || b.id - a.id)
-            .forEach((c, i) => { oldRanks[c.id] = { rank: i + 1, likes: c.likes }; });
-          setPrevRanks(oldRanks);
-        }
-        return { ...res.data, comments };
-      });
+          .forEach((c, i) => { oldRanks[c.id] = { rank: i + 1, likes: c.likes }; });
+        setPrevRanks(oldRanks);
+      }
+      setData({ ...res.data, comments });
       setCountdown(3);
     } catch (err) {
       if (!isAuto) {
@@ -231,7 +225,7 @@ const App: React.FC = () => {
     if (!data) return [];
     let r = [...data.comments];
     if (debouncedSearch) { const l = debouncedSearch.toLowerCase(); r = r.filter(c => c.author.toLowerCase().includes(l) || c.userId.toLowerCase().includes(l) || c.content.toLowerCase().includes(l)); }
-    if (sortMode === 'likes') r.sort((a, b) => b.likes - a.likes || b.id - a.id); else { r.forEach(c => { (c as any)._sortTime = new Date(c.date).getTime(); }); r.sort((a, b) => (b as any)._sortTime - (a as any)._sortTime || b.id - a.id); }
+    if (sortMode === 'likes') r.sort((a, b) => b.likes - a.likes || b.id - a.id); else { r = r.map(c => ({ ...c, _sortTime: new Date(c.date).getTime() })); r.sort((a, b) => (b as any)._sortTime - (a as any)._sortTime || b.id - a.id); }
     return r;
   }, [data, sortMode, debouncedSearch]);
 
@@ -287,7 +281,7 @@ const App: React.FC = () => {
       <header className="sticky top-0 z-50 glass-panel border-b border-gray-100 dark:border-white/10 pt-3 pb-2.5 px-3 md:px-8 shadow-sm">
         <div className="max-w-5xl mx-auto flex items-center gap-2 md:gap-6">
           <button aria-label="홈으로 이동" className="flex items-center gap-3 cursor-pointer group flex-shrink-0 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none rounded-xl" onClick={resetAll}>
-            <div className="w-8 h-8 md:w-9 md:h-9 bg-brand rounded-xl flex items-center justify-center text-white shadow-brand spring-transition group-hover:rotate-6 group-hover:scale-105 active:scale-[0.98] relative overflow-hidden flex-shrink-0"><div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent" /><Icon icon="solar:chat-round-line-linear" className="w-4.5 h-4.5 md:w-5.5 md:h-5.5 relative z-10" /></div>
+            <div className="w-8 h-8 md:w-9 md:h-9 bg-brand rounded-xl flex items-center justify-center text-white shadow-brand spring-transition group-hover:rotate-6 group-hover:scale-105 active:scale-[0.98] relative overflow-hidden flex-shrink-0"><div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent" /><Icon icon="solar:chat-round-line-linear" className="w-[18px] h-[18px] md:w-[22px] md:h-[22px] relative z-10" /></div>
             <div className="hidden md:flex items-center gap-1.5"><span className="text-sm font-black tracking-[-0.05em] uppercase">SOOP</span><span className="text-sm font-medium text-brand">RANK</span></div>
           </button>
           <div className="flex-1 min-w-0 max-w-2xl relative group">
@@ -295,11 +289,11 @@ const App: React.FC = () => {
             <input type="text" placeholder={data ? "댓글 검색..." : "게시물 주소 입력 (https://...)"} className="w-full pl-9 md:pl-11 pr-10 md:pr-12 py-2 md:py-2.5 bg-gray-100 dark:bg-white/5 rounded-xl focus:outline-none focus:ring-4 focus:ring-brand/10 spring-transition font-semibold text-xs md:text-sm border border-transparent focus:bg-white dark:focus:bg-white/10 focus:border-gray-200 dark:focus:border-white/10 shadow-inner dark:text-white" value={data ? searchTerm : url} onChange={(e) => data ? setSearchBar(e.target.value) : setUrl(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !data && fetchComments()} />
             {(data ? searchTerm : url) && (
               <button onClick={() => data ? setSearchBar('') : setUrl('')} className="absolute right-2 md:right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 spring-transition rounded-lg hover:bg-gray-200 dark:hover:bg-white/10" title="지우기">
-                <Icon icon="solar:close-circle-bold" className="w-4 h-4 md:w-4.5 md:h-4.5" />
+                <Icon icon="solar:close-circle-bold" className="w-4 h-4 md:w-[18px] md:h-[18px]" />
               </button>
             )}
           </div>
-          <div className="flex items-center gap-1 md:gap-2">{!data ? (<button onClick={() => fetchComments()} disabled={loading || !url} className="px-3 md:px-5 py-2 md:py-2.5 bg-brand text-white font-bold rounded-xl hover:bg-brand/90 disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-gray-600 spring-transition shadow-brand active:scale-[0.98] text-[10px] md:text-xs flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]">{loading ? <Icon icon="solar:refresh-linear" className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Icon icon="solar:graph-up-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" />}<span className="hidden xs:inline md:hidden">조회</span><span className="hidden md:inline">조회하기</span></button>) : (<button onClick={resetAll} className="px-2 md:px-4 py-2 md:py-2.5 text-gray-400 dark:text-gray-500 hover:text-red-500 spring-transition rounded-xl hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-gray-100 dark:hover:border-white/10 active:scale-[0.98] text-[10px] md:text-xs font-bold flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]"><Icon icon="solar:logout-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden xs:inline">종료</span></button>)}<div className="w-px h-4 md:h-5 bg-gray-200 dark:bg-white/10 mx-0.5 md:mx-1" /><button aria-label="다크모드 전환" onClick={() => setIsDark(!isDark)} className="p-1.5 md:p-2.5 text-gray-400 dark:text-gray-500 hover:text-brand dark:hover:text-yellow-400 spring-transition rounded-xl active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">{isDark ? <Icon icon="solar:sun-linear" className="w-4 h-4 md:w-4.5 md:h-4.5" /> : <Icon icon="solar:moon-linear" className="w-4 h-4 md:w-4.5 md:h-4.5" />}</button></div>
+          <div className="flex items-center gap-1 md:gap-2">{!data ? (<button onClick={() => fetchComments()} disabled={loading || !url} className="px-3 md:px-5 py-2 md:py-2.5 bg-brand text-white font-bold rounded-xl hover:bg-brand/90 disabled:bg-gray-100 dark:disabled:bg-white/5 disabled:text-gray-400 dark:disabled:text-gray-600 spring-transition shadow-brand active:scale-[0.98] text-[10px] md:text-xs flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]">{loading ? <Icon icon="solar:refresh-linear" className="w-3.5 h-3.5 md:w-4 md:h-4 animate-spin" /> : <Icon icon="solar:graph-up-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" />}<span className="hidden xs:inline md:hidden">조회</span><span className="hidden md:inline">조회하기</span></button>) : (<button onClick={resetAll} className="px-2 md:px-4 py-2 md:py-2.5 text-gray-400 dark:text-gray-500 hover:text-red-500 spring-transition rounded-xl hover:bg-white dark:hover:bg-white/5 border border-transparent hover:border-gray-100 dark:hover:border-white/10 active:scale-[0.98] text-[10px] md:text-xs font-bold flex items-center gap-1 md:gap-2 focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#09090b]"><Icon icon="solar:logout-linear" className="w-3.5 h-3.5 md:w-4 md:h-4" /><span className="hidden xs:inline">종료</span></button>)}<div className="w-px h-4 md:h-5 bg-gray-200 dark:bg-white/10 mx-0.5 md:mx-1" /><button aria-label="다크모드 전환" onClick={() => setIsDark(!isDark)} className="p-1.5 md:p-2.5 text-gray-400 dark:text-gray-500 hover:text-brand dark:hover:text-yellow-400 spring-transition rounded-xl active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-brand focus-visible:outline-none">{isDark ? <Icon icon="solar:sun-linear" className="w-4 h-4 md:w-[18px] md:h-[18px]" /> : <Icon icon="solar:moon-linear" className="w-4 h-4 md:w-[18px] md:h-[18px]" />}</button></div>
         </div>
       </header>
 
