@@ -131,6 +131,8 @@ const App: React.FC = () => {
   const [toast, setToast] = useState<{show: boolean, message: string}>({ show: false, message: '' });
   const [prevRanks, setPrevRanks] = useState<Record<number, RankState>>({});
   const toastTimer = useRef<number>(0);
+  const dataRef = useRef(data);
+  useEffect(() => { dataRef.current = data; }, [data]);
 
   const showToast = useCallback((message: string) => {
     setToast({ show: true, message });
@@ -189,9 +191,9 @@ const App: React.FC = () => {
 
       const comments = res.data.comments.map(c => ({ ...c, ...tokenizeContent(c.content) }));
 
-      if (data) {
+      if (dataRef.current) {
         const oldRanks: Record<number, RankState> = {};
-        [...data.comments]
+        [...dataRef.current.comments]
           .sort((a, b) => b.likes - a.likes || b.id - a.id)
           .forEach((c, i) => { oldRanks[c.id] = { rank: i + 1, likes: c.likes }; });
         setPrevRanks(oldRanks);
