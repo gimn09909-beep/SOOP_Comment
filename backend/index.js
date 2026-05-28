@@ -5,7 +5,7 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+app.use(cors({ origin: process.env.NODE_ENV === 'production' ? false : '*', credentials: true }));
 app.use(express.json());
 
 // --- Serve Frontend Static Files ---
@@ -13,14 +13,8 @@ app.use(express.json());
 const frontendPath = path.join(__dirname, '../frontend/dist');
 app.use(express.static(frontendPath));
 
-async function openBrowser(url) {
-  const { exec } = require('child_process');
-  const start = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
-  exec(`${start} ${url}`);
-}
-
 // In-Memory Cache with cleanup
-let cache = new Map();
+const cache = new Map();
 const CACHE_TTL = 2500;
 
 setInterval(() => {
@@ -82,8 +76,8 @@ app.get('/api/comments', async (req, res) => {
     let comments = [...(first.data || [])];
     
     // Safety limit: Max 50 pages (5000 comments) to prevent server timeout
-    const totalPages = first.meta?.lastPage || 1;
-    const lastPage = Math.min(totalPages, 50);
+    const totalPages = Math.min(parseInt(first.meta?.lastPage) || 1, 50);
+    const lastPage = totalPages > 0 ? totalPages : 1;
 
     if (lastPage > 1) {
       // Fetch in chunks of 10 to be polite to the API and avoid socket exhaustion
@@ -124,15 +118,15 @@ app.get('/api/comments', async (req, res) => {
   }
 });
 
+// 404 for unknown API routes
+app.use('/api', (req, res) => res.status(404).json({ error: 'Unknown API route' }));
+
 app.get(/^.*$/, (req, res) => { res.sendFile(path.join(frontendPath, 'index.html')); });
 
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`Access at http://localhost:${PORT}`);
-    if (process.env.NODE_ENV !== 'development') {
-      openBrowser(`http://localhost:${PORT}`);
-    }
   });
 }
 

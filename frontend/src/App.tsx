@@ -68,7 +68,7 @@ const CommentRow: React.FC<{ comment: Comment; isPinnedSection: boolean; current
       <div className="flex items-center gap-3 sm:hidden w-full">
         <div className="flex flex-col items-center gap-0.5 w-8 flex-shrink-0">
           <span className={`text-lg font-black tabular-nums spring-transition ${currentRank <= 3 && !isPinnedSection ? 'text-brand' : 'text-gray-300 dark:text-gray-700'}`}>{currentRank.toString().padStart(2, '0')}</span>
-          <div className="flex items-center gap-0.5">{change.type === 'up' && (<Icon icon="solar:arrow-up-bold" className="w-2 h-2 text-green-500" />)}{change.type === 'down' && (<Icon icon="solar:arrow-down-bold" className="w-2 h-2 text-red-500 opacity-40" />)}</div>
+          <div className="flex items-center gap-0.5">{change.type === 'up' && (<Icon icon="solar:arrow-up-bold" className="w-2 h-2 text-green-500" />)}{change.type === 'down' && (<Icon icon="solar:arrow-down-bold" className="w-2 h-2 text-red-500 opacity-40" />)}{change.type === 'new' && (<span className="text-[7px] font-black text-brand">NEW</span>)}</div>
         </div>
         <div className="relative flex-shrink-0"><a href={`https://www.sooplive.com/station/${comment.userId}`} target="_blank" rel="noopener noreferrer"><img src={comment.profileImage} alt="" className="w-9 h-9 rounded-xl object-cover border border-gray-100 dark:border-white/5" loading="lazy" onError={(e) => { e.currentTarget.src = 'https://res.sooplive.com/images/station/img_profile_default.png'; }} /></a></div>
         <div className="flex-1 min-w-0">
@@ -88,7 +88,7 @@ const CommentRow: React.FC<{ comment: Comment; isPinnedSection: boolean; current
       <div className="hidden sm:flex items-start gap-4 flex-shrink-0 pt-1">
         <div className="flex flex-col items-center justify-start w-10">
           <span className={`text-2xl font-black tabular-nums spring-transition ${currentRank <= 3 && !isPinnedSection ? 'text-brand' : 'text-gray-200 dark:text-gray-800 group-hover:text-gray-400 dark:group-hover:text-gray-600'}`}>{currentRank.toString().padStart(2, '0')}</span>
-          <div className="mt-1 flex items-center gap-1">{change.type === 'up' && (<div className="flex items-center gap-0.5 text-green-500"><Icon icon="solar:arrow-up-bold" className="w-2.5 h-2.5" /><span className="text-[9px] font-black tabular-nums">{change.rankDiff}</span></div>)}{change.type === 'down' && (<div className="flex items-center gap-0.5 text-red-500 opacity-40"><Icon icon="solar:arrow-down-bold" className="w-2.5 h-2.5" /><span className="text-[9px] font-black tabular-nums">{change.rankDiff}</span></div>)}</div>
+          <div className="mt-1 flex items-center gap-1">{change.type === 'up' && (<div className="flex items-center gap-0.5 text-green-500"><Icon icon="solar:arrow-up-bold" className="w-2.5 h-2.5" /><span className="text-[9px] font-black tabular-nums">{change.rankDiff}</span></div>)}{change.type === 'down' && (<div className="flex items-center gap-0.5 text-red-500 opacity-40"><Icon icon="solar:arrow-down-bold" className="w-2.5 h-2.5" /><span className="text-[9px] font-black tabular-nums">{change.rankDiff}</span></div>)}{change.type === 'new' && (<span className="text-[9px] font-black text-brand">NEW</span>)}</div>
         </div>
         <div className="relative flex-shrink-0"><a href={`https://www.sooplive.com/station/${comment.userId}`} target="_blank" rel="noopener noreferrer"><img src={comment.profileImage} alt="" className="w-12 h-12 rounded-2xl object-cover border border-gray-100 dark:border-white/5 shadow-sm spring-transition group-hover:scale-105" loading="lazy" onError={(e) => { e.currentTarget.src = 'https://res.sooplive.com/images/station/img_profile_default.png'; }} /></a></div>
       </div>
@@ -109,11 +109,11 @@ const CommentRow: React.FC<{ comment: Comment; isPinnedSection: boolean; current
             <button aria-label="펼치기" onClick={() => toggleExpand(comment.id)} className={`p-2 rounded-xl spring-transition hover:bg-gray-100 dark:hover:bg-white/5 ${isExpanded ? 'text-brand bg-brand/5' : 'text-gray-400'}`}><Icon icon={isExpanded ? "solar:alt-arrow-up-linear" : "solar:alt-arrow-down-linear"} className="w-4.5 h-4.5" /></button>
           </div>
         </div>
-        <div className="w-full break-all overflow-wrap-anywhere">{!isExpanded ? (<p className="text-gray-500 dark:text-gray-400 text-[13px] sm:text-[14px] leading-relaxed line-clamp-1 cursor-pointer hover:text-gray-900 dark:hover:text-white spring-transition font-medium" onClick={() => toggleExpand(comment.id)}>{comment.preview || "콘텐츠 데이터 포함됨"}</p>) : (<div className="mt-2 sm:mt-3 animate-in fade-in slide-in-from-top-1 duration-400 cursor-pointer" onClick={() => toggleExpand(comment.id)}><div className="relative p-3 sm:p-5 md:p-7 bg-gray-50/50 dark:bg-white/[0.015] rounded-2xl border border-gray-100/50 dark:border-white/5"><div className="absolute left-0 top-4 sm:top-6 bottom-4 sm:bottom-6 w-1 bg-brand/20 rounded-full" /><div className="text-gray-800 dark:text-[#d1d5db] text-[14px] sm:text-[15px] md:text-[16px] leading-[1.7] sm:leading-[1.8] font-medium whitespace-pre-wrap [word-break:keep-all]">{renderContent(comment.tokens || [], searchTerm)}</div>{comment.image && (<div className="mt-4 sm:mt-6 relative group/img"><div className="absolute inset-0 bg-brand/5 blur-3xl opacity-0 group-hover/img:opacity-100 spring-transition" /><img src={comment.image} alt="" className="max-h-[400px] sm:max-h-[500px] w-auto rounded-xl border border-gray-200 dark:border-white/10 shadow-lg relative z-10 spring-transition hover:scale-[1.01] cursor-zoom-in" loading="lazy" /></div>)}</div></div>)}</div>
+        <div className="w-full break-all [overflow-wrap:anywhere]">{!isExpanded ? (<p className="text-gray-500 dark:text-gray-400 text-[13px] sm:text-[14px] leading-relaxed line-clamp-1 cursor-pointer hover:text-gray-900 dark:hover:text-white spring-transition font-medium" onClick={() => toggleExpand(comment.id)}>{comment.preview || "콘텐츠 데이터 포함됨"}</p>) : (<div className="mt-2 sm:mt-3 animate-in fade-in slide-in-from-top-1 duration-400 cursor-pointer" onClick={() => toggleExpand(comment.id)}><div className="relative p-3 sm:p-5 md:p-7 bg-gray-50/50 dark:bg-white/[0.015] rounded-2xl border border-gray-100/50 dark:border-white/5"><div className="absolute left-0 top-4 sm:top-6 bottom-4 sm:bottom-6 w-1 bg-brand/20 rounded-full" /><div className="text-gray-800 dark:text-[#d1d5db] text-[14px] sm:text-[15px] md:text-[16px] leading-[1.7] sm:leading-[1.8] font-medium whitespace-pre-wrap [word-break:keep-all]">{renderContent(comment.tokens || [], searchTerm)}</div>{comment.image && (<div className="mt-4 sm:mt-6 relative group/img"><div className="absolute inset-0 bg-brand/5 blur-3xl opacity-0 group-hover/img:opacity-100 spring-transition" /><img src={comment.image} alt="" className="max-h-[400px] sm:max-h-[500px] w-auto rounded-xl border border-gray-200 dark:border-white/10 shadow-lg relative z-10 spring-transition hover:scale-[1.01] cursor-zoom-in" loading="lazy" /></div>)}</div></div>)}</div>
       </div>
     </div>
   );
-}, (p, n) => p.comment.likes === n.comment.likes && p.currentRank === n.currentRank && p.isPinned === n.isPinned && p.isExpanded === n.isExpanded && p.change.likesDiff === n.change.likesDiff && p.searchTerm === n.searchTerm);
+}, (p, n) => p.comment.id === n.comment.id && p.comment.likes === n.comment.likes && p.comment.content === n.comment.content && p.currentRank === n.currentRank && p.isPinned === n.isPinned && p.isExpanded === n.isExpanded && p.change.likesDiff === n.change.likesDiff && p.searchTerm === n.searchTerm);
 
 const App: React.FC = () => {
   const [url, setUrl] = useState('');
@@ -130,10 +130,12 @@ const App: React.FC = () => {
   const [visibleCount, setVisibleCount] = useState(30);
   const [toast, setToast] = useState<{show: boolean, message: string}>({ show: false, message: '' });
   const [prevRanks, setPrevRanks] = useState<Record<number, RankState>>({});
+  const toastTimer = useRef<number>(0);
 
   const showToast = useCallback((message: string) => {
     setToast({ show: true, message });
-    setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(prev => ({ ...prev, show: false })), 3000);
   }, []);
 
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -229,7 +231,7 @@ const App: React.FC = () => {
     if (!data) return [];
     let r = [...data.comments];
     if (debouncedSearch) { const l = debouncedSearch.toLowerCase(); r = r.filter(c => c.author.toLowerCase().includes(l) || c.userId.toLowerCase().includes(l) || c.content.toLowerCase().includes(l)); }
-    if (sortMode === 'likes') r.sort((a, b) => b.likes - a.likes || b.id - a.id); else r.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() || b.id - a.id);
+    if (sortMode === 'likes') r.sort((a, b) => b.likes - a.likes || b.id - a.id); else { r.forEach(c => { (c as any)._sortTime = new Date(c.date).getTime(); }); r.sort((a, b) => (b as any)._sortTime - (a as any)._sortTime || b.id - a.id); }
     return r;
   }, [data, sortMode, debouncedSearch]);
 
